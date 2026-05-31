@@ -1,5 +1,6 @@
 # Persistence storage folders
 .kafka-storage/
+minio/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
