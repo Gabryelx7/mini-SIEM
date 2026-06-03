@@ -152,7 +152,9 @@ services:
     user: "0:0"
 
   airflow-scheduler:
-    image: apache/airflow:3.2.2
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow-spark
     container_name: airflow-scheduler
     depends_on:
       airflow-init:
@@ -161,6 +163,9 @@ services:
       <<: *airflow-common-env
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      MINIO_USER: ${MINIO_USER}
+      MINIO_PASSWORD: ${MINIO_PASSWORD}
+      MINIO_ENDPOINT: http://siem-minio:9000
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
