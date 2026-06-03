@@ -16,13 +16,14 @@ def get_spark_session(app_name="SIEM_Lakehouse"):
         "com.amazonaws:aws-java-sdk-bundle:1.12.262"
     ]
 
-    minio_user = os.getenv("MINIO_USER")
-    minio_password = os.getenv("MINIO_PASSWORD")
+    minio_user = os.getenv("MINIO_USER", "admin")
+    minio_password = os.getenv("MINIO_PASSWORD", "password123")
+    minio_endpoint = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
 
     builder = SparkSession.builder.appName(app_name) \
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-        .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
+        .config("spark.hadoop.fs.s3a.endpoint", minio_endpoint) \
         .config("spark.hadoop.fs.s3a.access.key", minio_user) \
         .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
         .config("spark.hadoop.fs.s3a.path.style.access", "true") \
