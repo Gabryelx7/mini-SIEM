@@ -34,17 +34,31 @@ def hourly_maintenance():
     def compact_files(validation_result: dict):
         """
         Triggers a Spark batch job to run OPTIMIZE on Delta tables.
-        Notice how TaskFlow automatically unpacks the dict from the previous task.
         """
+        import subprocess
+        
         if validation_result["status"] != "passed":
             raise ValueError("Data validation failed, aborting compaction.")
         
-        print("Validation passed. Triggering Spark compaction script...")
-        
-        # TO-DO: Add Spark batch jobs via bash/subprocess:
-        # e.g., subprocess.run(["python", "/opt/airflow/spark_scripts/compact_tables.py"], check=True)
-        
-        return "Compaction Complete"
+        print("Triggering Spark compaction script...")
+        try:
+            result = subprocess.run(
+                ["python3", "/opt/airflow/spark_scripts/compact_tables.py"], 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            print("--- STDOUT ---")
+            print(result.stdout)
+            return "Compaction Complete"
+            
+        except subprocess.CalledProcessError as e:
+            print("--- SUBPROCESS FAILED ---")
+            print(f"Exit Code: {e.returncode}")
+            print(f"--- STDOUT ---\n{e.stdout}")
+            print(f"--- STDERR ---\n{e.stderr}")
+            
+            raise RuntimeError(f"Spark script failed. Check logs above.")
 
     @task
     def refresh_aggregates(compaction_status: str):

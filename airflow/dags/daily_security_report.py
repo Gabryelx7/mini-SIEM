@@ -25,7 +25,12 @@ def daily_security_summary():
         Removes logs older than 30 days from the Bronze layer to save MinIO storage.
         In Delta Lake, this is done using the VACUUM command.
         """
-        print("Running VACUUM command on Bronze Delta tables (Retention: 30 days)...")
+        import subprocess
+        print("Running VACUUM command on Bronze Delta tables (Retention: 7 days)...")
+        subprocess.run(
+            ["python3", "/opt/airflow/spark_scripts/vacuum_tables.py"], 
+            check=True
+        )
         return "Cleanup successful"
 
     @task
@@ -33,13 +38,21 @@ def daily_security_summary():
         """
         Extracts aggregate metrics from the Gold layer to build a summary.
         """
-        print("Querying Gold layer for Top 10 Attacking IPs...")
-        # Simulated metrics extracted from Delta
-        daily_metrics = {
-            "total_brute_force_attempts": 1450,
-            "top_flagged_ip": "192.168.1.15"
-        }
-        return daily_metrics
+        import subprocess
+        import json
+
+        print("Querying Gold layer for metrics...")
+        result = subprocess.run(
+            ["python3", "/opt/airflow/spark_scripts/extract_metrics.py"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        output_lines = result.stdout.strip().split('\n')
+        metrics = json.loads(output_lines[-1])
+
+        return metrics
 
     @task
     def send_anomaly_summaries(metrics: dict, cleanup_status: str):
