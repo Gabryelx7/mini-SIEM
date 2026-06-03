@@ -209,6 +209,20 @@ services:
     networks:
       - siem-net
     user: "${AIRFLOW_UID:-50000}:0"
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: siem-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - siem-net
 
 volumes:
   postgres-db-volume:
