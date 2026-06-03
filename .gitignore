@@ -1,6 +1,9 @@
-# Persistence storage folders
-.kafka-storage/
-minio/
+# Infra Storage
+infra/minio/
+infra/kafka-storage/
+
+# Airflow Logs
+airflow/logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
