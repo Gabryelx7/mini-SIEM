@@ -10,4 +10,4 @@ RUN apt-get update \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 USER airflow
-RUN pip install --no-cache-dir pyspark==3.5.0 delta-spark==3.1.0
+RUN pip install --no-cache-dir pyspark==3.5.0 delta-spark==3.1.0 prometheus-client==0.19.0
