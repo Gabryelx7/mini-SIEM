@@ -1,14 +1,14 @@
 from pyspark.sql.functions import current_timestamp
 from session_builder import get_spark_session
 
-def run_bronze_pipeline():
-    spark = get_spark_session("Bronze_Ingestion_Auth")
+def run_bronze_pipeline(topic):
+    spark = get_spark_session(f"Bronze_Ingestion_{topic.capitalize()}")
 
     # Read from Kafka
     kafka_df = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
-        .option("subscribe", "auth_logs") \
+        .option("subscribe", topic) \
         .option("startingOffsets", "earliest") \
         .load()
 
@@ -22,11 +22,11 @@ def run_bronze_pipeline():
         "timestamp as kafka_timestamp"
     ).withColumn("ingestion_timestamp", current_timestamp())
 
-    # Write to Delta Lake (MinIO)
-    bronze_path = "s3a://siem-lakehouse/bronze/auth_logs"
-    checkpoint_path = "s3a://siem-lakehouse/checkpoints/bronze_auth_logs"
+    # Write to Delta Lake
+    bronze_path = f"s3a://siem-lakehouse/bronze/{topic}"
+    checkpoint_path = f"s3a://siem-lakehouse/checkpoints/bronze_{topic}"
 
-    print(f"Starting Bronze stream for auth_logs. Writing to {bronze_path}...")
+    print(f"Starting Bronze stream for {topic}. Writing to {bronze_path}...")
 
     query = bronze_df.writeStream \
         .format("delta") \
@@ -38,4 +38,6 @@ def run_bronze_pipeline():
     query.awaitTermination()
 
 if __name__ == "__main__":
-    run_bronze_pipeline()
+    import sys
+    topic = sys.argv[1] if len(sys.argv) > 1 else "auth_logs"
+    run_bronze_pipeline(topic)
