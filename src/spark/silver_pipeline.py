@@ -78,7 +78,7 @@ def create_silver_stream(spark_session, topic):
         .option("checkpointLocation", checkpoint_path) \
         .start(silver_path)
 
-    query.awaitTermination()
+    return query
 
 def run_unified_silver_pipeline():
     spark = get_spark_session("Unified_Silver_Cleaning")

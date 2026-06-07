@@ -81,8 +81,8 @@ def create_gold_stream(spark_session, topic):
         .outputMode("complete") \
         .option("checkpointLocation", checkpoint_path) \
         .start(gold_path)
-
-    query.awaitTermination()
+    
+    return query
 
 def run_unified_gold_pipeline():
     spark = get_spark_session("Unified_Gold_Aggregations")
