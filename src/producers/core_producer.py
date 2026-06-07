@@ -1,7 +1,8 @@
 from confluent_kafka import Producer
 import json
+import os
 
-def get_kafka_producer(broker_url="localhost:9092"):
+def get_kafka_producer(broker_url="kafka_1:19092"):
     conf = {
         'bootstrap.servers': broker_url,
         'client.id': 'siem_log_generator'

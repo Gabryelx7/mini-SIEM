@@ -1,5 +1,6 @@
 import time
 import random
+import os
 from datetime import datetime, timezone
 from faker import Faker
 from core_producer import get_kafka_producer, produce_message
@@ -21,7 +22,7 @@ def generate_auth_log():
     }
 
 def main():
-    producer = get_kafka_producer("localhost:9092")
+    producer = get_kafka_producer(os.getenv("KAFKA_PORT"))
     topic = "auth_logs"
     
     print(f"Starting simulated log generation for topic: {topic}...")

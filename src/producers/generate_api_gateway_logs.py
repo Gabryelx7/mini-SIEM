@@ -1,5 +1,6 @@
 import time
 import random
+import os
 from datetime import datetime, timezone
 from faker import Faker
 from core_producer import get_kafka_producer, produce_message
@@ -29,7 +30,7 @@ def generate_api_gateway_log():
     }
 
 def main():
-    producer = get_kafka_producer("localhost:9092")
+    producer = get_kafka_producer(os.getenv("KAFKA_PORT"))
     topic = "api_gateway_logs"
     
     print(f"Starting simulated API gateway log generation for topic: {topic}...")

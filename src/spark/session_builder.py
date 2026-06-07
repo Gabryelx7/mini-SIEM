@@ -1,9 +1,6 @@
 import os
 from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Inject JVM argument to fix Java 21+ Hadoop compatibility
 os.environ["_JAVA_OPTIONS"] = "-Djava.security.manager=allow"

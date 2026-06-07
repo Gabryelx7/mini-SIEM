@@ -1,3 +1,4 @@
+import os
 from pyspark.sql.functions import current_timestamp
 from session_builder import get_spark_session
 
@@ -7,7 +8,7 @@ def run_bronze_pipeline(topic):
     # Read from Kafka
     kafka_df = spark.readStream \
         .format("kafka") \
-        .option("kafka.bootstrap.servers", "localhost:9092") \
+        .option("kafka.bootstrap.servers", os.getenv("KAFKA_PORT")) \
         .option("subscribe", topic) \
         .option("startingOffsets", "earliest") \
         .load()

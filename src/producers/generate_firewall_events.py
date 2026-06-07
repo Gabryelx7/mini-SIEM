@@ -1,5 +1,6 @@
 import time
 import random
+import os
 from datetime import datetime, timezone
 from faker import Faker
 from core_producer import get_kafka_producer, produce_message
@@ -41,7 +42,7 @@ def generate_firewall_event():
     }
 
 def main():
-    producer = get_kafka_producer("localhost:9092")
+    producer = get_kafka_producer(os.getenv("KAFKA_PORT"))
     topic = "firewall_events"
     
     print(f"Starting simulated firewall event generation for topic: {topic}...")
