@@ -308,41 +308,17 @@ services:
     command: ["python", "generate_api_gateway_logs.py"]
   
   # --- SPARK STRUCTURED STREAMING ---
-  stream-bronze-auth:
+  stream-bronze:
     <<: *spark-job-template
-    command: ["python", "bronze_pipeline.py", "auth_logs"]
+    command: ["python", "bronze_pipeline.py"]
   
-  stream-bronze-firewall:
+  stream-silver:
     <<: *spark-job-template
-    command: ["python", "bronze_pipeline.py", "firewall_events"]
+    command: ["python", "silver_pipeline.py"]
   
-  stream-bronze-api-gateway:
+  stream-gold:
     <<: *spark-job-template
-    command: ["python", "bronze_pipeline.py", "api_gateway_logs"]
-  
-  stream-silver-auth:
-    <<: *spark-job-template
-    command: ["python", "silver_pipeline.py", "auth_logs"]
-  
-  stream-silver-firewall:
-    <<: *spark-job-template
-    command: ["python", "silver_pipeline.py", "firewall_events"]
-  
-  stream-silver-api-gateway:
-    <<: *spark-job-template
-    command: ["python", "silver_pipeline.py", "api_gateway_logs"]
-
-  stream-gold-auth:
-    <<: *spark-job-template
-    command: ["python", "gold_pipeline.py", "auth_logs"]
-  
-  stream-gold-firewall:
-    <<: *spark-job-template
-    command: ["python", "gold_pipeline.py", "firewall_events"]
-  
-  stream-gold-api-gateway:
-    <<: *spark-job-template
-    command: ["python", "gold_pipeline.py", "api_gateway_logs"]
+    command: ["python", "gold_pipeline.py"]
 
 volumes:
   postgres-db-volume:
