@@ -18,6 +18,9 @@ def get_spark_session(app_name="SIEM_Lakehouse"):
     minio_endpoint = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
 
     builder = SparkSession.builder.appName(app_name) \
+        .config("spark.driver.memory", "512m") \
+        .config("spark.executor.memory", "512m") \
+        .config("spark.sql.shuffle.partitions", "4") \
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
         .config("spark.hadoop.fs.s3a.endpoint", minio_endpoint) \
