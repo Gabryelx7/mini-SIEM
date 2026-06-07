@@ -2,11 +2,9 @@ import os
 from pyspark.sql.functions import current_timestamp
 from session_builder import get_spark_session
 
-def run_bronze_pipeline(topic):
-    spark = get_spark_session(f"Bronze_Ingestion_{topic.capitalize()}")
-
+def create_bronze_stream(spark_session, topic):
     # Read from Kafka
-    kafka_df = spark.readStream \
+    kafka_df = spark_session.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", os.getenv("KAFKA_PORT")) \
         .option("subscribe", topic) \
@@ -35,10 +33,16 @@ def run_bronze_pipeline(topic):
         .option("checkpointLocation", checkpoint_path) \
         .start(bronze_path)
 
-    # Block the thread so the stream stays alive
-    query.awaitTermination()
+    return query
+
+def run_unified_bronze_pipeline():
+    spark = get_spark_session("Unified_Bronze_Ingestion")
+
+    auth_query = create_bronze_stream(spark, "auth_logs")
+    fw_query = create_bronze_stream(spark, "firewall_events")
+    api_query = create_bronze_stream(spark, "api_gateway_logs")
+
+    spark.streams.awaitAnyTermination()
 
 if __name__ == "__main__":
-    import sys
-    topic = sys.argv[1] if len(sys.argv) > 1 else "auth_logs"
-    run_bronze_pipeline(topic)
+    run_unified_bronze_pipeline()

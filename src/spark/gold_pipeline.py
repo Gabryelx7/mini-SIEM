@@ -60,12 +60,10 @@ GOLD_KEY_REGISTRY = {
     "api_gateway_logs": "api_error"
 }
 
-def run_gold_pipeline(topic):
-    spark = get_spark_session(f"Gold_Aggregations_{topic}")
-
+def create_gold_stream(spark_session, topic):
     silver_path = f"s3a://siem-lakehouse/silver/{topic}"
     
-    silver_df = spark.readStream \
+    silver_df = spark_session.readStream \
         .format("delta") \
         .load(silver_path)
 
@@ -86,7 +84,14 @@ def run_gold_pipeline(topic):
 
     query.awaitTermination()
 
+def run_unified_gold_pipeline():
+    spark = get_spark_session("Unified_Gold_Aggregations")
+
+    auth_query = create_gold_stream(spark, "auth_logs")
+    fw_query = create_gold_stream(spark, "firewall_events")
+    api_query = create_gold_stream(spark, "api_gateway_logs")
+
+    spark.streams.awaitAnyTermination()
+
 if __name__ == "__main__":
-    import sys
-    topic = sys.argv[1] if len(sys.argv) > 1 else "auth_logs"
-    run_gold_pipeline(topic)
+    run_unified_gold_pipeline()

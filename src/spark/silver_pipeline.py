@@ -47,14 +47,13 @@ SCHEMA_REGISTRY = {
     "api_gateway_logs": api_gateway_schema
 }
 
-def run_silver_pipeline(topic):
-    spark = get_spark_session(f"Silver_Cleaning_{topic.capitalize()}")
+def create_silver_stream(spark_session, topic):
     schema = SCHEMA_REGISTRY[topic]
 
     bronze_path = f"s3a://siem-lakehouse/bronze/{topic}"
     print(f"Reading Bronze stream from {bronze_path}...")
     
-    bronze_df = spark.readStream \
+    bronze_df = spark_session.readStream \
         .format("delta") \
         .load(bronze_path)
 
@@ -81,7 +80,14 @@ def run_silver_pipeline(topic):
 
     query.awaitTermination()
 
+def run_unified_silver_pipeline():
+    spark = get_spark_session("Unified_Silver_Cleaning")
+
+    auth_query = create_silver_stream(spark, "auth_logs")
+    fw_query = create_silver_stream(spark, "firewall_events")
+    api_query = create_silver_stream(spark, "api_gateway_logs")
+
+    spark.streams.awaitAnyTermination()
+
 if __name__ == "__main__":
-    import sys
-    topic = sys.argv[1] if len(sys.argv) > 1 else "auth_logs"
-    run_silver_pipeline(topic)
+    run_unified_silver_pipeline()
