@@ -1,3 +1,4 @@
+# --- TEMPLATES ---
 x-airflow-common:
   &airflow-common-env
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
@@ -9,6 +10,41 @@ x-airflow-common:
   AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
   AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
   AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-api_secret_key}
+
+x-spark-job:
+  &spark-job-template
+  build:
+    context: ./src/spark
+    dockerfile: Dockerfile.spark
+  environment:
+    MINIO_USER: ${MINIO_USER}
+    MINIO_PASSWORD: ${MINIO_PASSWORD}
+    MINIO_ENDPOINT: http://siem-minio:9000
+    KAFKA_PORT: kafka_1:19092
+  networks:
+    - siem-net
+  depends_on:
+    - minio
+    - kafka_1
+    - kafka_2
+    - kafka_3
+
+x-log-generator:
+  &log-generator-template
+  build:
+    context: ./src/producers
+    dockerfile: Dockerfile.generator
+  environment:
+    MINIO_USER: ${MINIO_USER}
+    MINIO_PASSWORD: ${MINIO_PASSWORD}
+    MINIO_ENDPOINT: http://siem-minio:9000
+    KAFKA_PORT: kafka_1:19092
+  networks:
+    - siem-net
+  depends_on:
+    - kafka_1
+    - kafka_2
+    - kafka_3
 
 networks:
   siem-net:
@@ -257,6 +293,56 @@ services:
       - kafka_3
     networks:
       - siem-net
+  
+  # --- LOG GENERATORS ---
+  generator-auth:
+    <<: *log-generator-template
+    command: ["python", "generate_auth_logs.py"]
+    
+  generator-firewall:
+    <<: *log-generator-template
+    command: ["python", "generate_firewall_events.py"]
+  
+  generator-api-gateway:
+    <<: *log-generator-template
+    command: ["python", "generate_api_gateway_logs.py"]
+  
+  # --- SPARK STRUCTURED STREAMING ---
+  stream-bronze-auth:
+    <<: *spark-job-template
+    command: ["python", "bronze_pipeline.py", "auth_logs"]
+  
+  stream-bronze-firewall:
+    <<: *spark-job-template
+    command: ["python", "bronze_pipeline.py", "firewall_events"]
+  
+  stream-bronze-api-gateway:
+    <<: *spark-job-template
+    command: ["python", "bronze_pipeline.py", "api_gateway_logs"]
+  
+  stream-silver-auth:
+    <<: *spark-job-template
+    command: ["python", "silver_pipeline.py", "auth_logs"]
+  
+  stream-silver-firewall:
+    <<: *spark-job-template
+    command: ["python", "silver_pipeline.py", "firewall_events"]
+  
+  stream-silver-api-gateway:
+    <<: *spark-job-template
+    command: ["python", "silver_pipeline.py", "api_gateway_logs"]
+
+  stream-gold-auth:
+    <<: *spark-job-template
+    command: ["python", "gold_pipeline.py", "auth_logs"]
+  
+  stream-gold-firewall:
+    <<: *spark-job-template
+    command: ["python", "gold_pipeline.py", "firewall_events"]
+  
+  stream-gold-api-gateway:
+    <<: *spark-job-template
+    command: ["python", "gold_pipeline.py", "api_gateway_logs"]
 
 volumes:
   postgres-db-volume:
