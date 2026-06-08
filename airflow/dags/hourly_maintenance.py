@@ -1,3 +1,4 @@
+from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.sdk import task, dag
 from datetime import datetime, timedelta
 
@@ -21,8 +22,11 @@ LOG_TYPES = ["auth_logs", "firewall_events", "api_gateway_logs"]
 )
 def hourly_maintenance():
 
+    start_pipeline = EmptyOperator(task_id="start_pipeline")
+    end_pipeline = EmptyOperator(task_id="end_pipeline")
+
     @task
-    def validate_logs():
+    def validate_logs(log_type):
         """
         Simulates a data quality check on the Bronze layer.
         In production, this could query MinIO to ensure files exist 
@@ -32,7 +36,7 @@ def hourly_maintenance():
         # Simulated check passing
         return {"status": "passed", "log_type": log_type}
 
-    @task
+    @task(pool="spark_pool")
     def compact_files(validation_result: dict):
         """
         Triggers a Spark batch job to run OPTIMIZE on Delta tables.
@@ -61,6 +65,9 @@ def hourly_maintenance():
     for log_type in LOG_TYPES:
         val_output = validate_logs.override(task_id=f"validate_{log_type}")(log_type)
         comp_output = compact_files.override(task_id=f"compact_{log_type}")(val_output)
-        refresh_aggregates.override(task_id=f"refresh_{log_type}")(comp_output)
+        refresh = refresh_aggregates.override(task_id=f"refresh_{log_type}")(comp_output)
+
+        start_pipeline >> val_output
+        refresh >> end_pipeline
 
 hourly_maintenance()
