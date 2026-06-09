@@ -38,7 +38,7 @@ def get_api_gateway_metrics(spark):
 
     total = df.select(_sum("error_count")).collect()[0][0] or 0
     top_row = df.orderBy(col("error_count").desc()).first()
-    top_ip = top_row["source_ip"] if top_row else "None"
+    top_ip = top_row["client_ip"] if top_row else "None"
 
     metrics = {
         "total_errors": int(total),
