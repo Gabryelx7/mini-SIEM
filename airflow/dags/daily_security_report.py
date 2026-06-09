@@ -1,3 +1,4 @@
+from airflow.providers.standard.operators.empty import EmptyOperator
 from datetime import datetime, timedelta
 from airflow.sdk import task, dag
 
@@ -21,25 +22,38 @@ LOG_TYPES = ["auth_logs", "firewall_events", "api_gateway_logs"]
 )
 def daily_security_summary():
 
-    @task
+    start_pipeline = EmptyOperator(task_id="start_pipeline")
+    end_pipeline = EmptyOperator(task_id="end_pipeline")
+
+    @task(pool="spark_pool")
     def retention_cleanup(log_type: str):
         import subprocess
+
         print(f"Running VACUUM on {log_type}...")
-        subprocess.run(
+        result = subprocess.run(
             ["python3", "/opt/airflow/spark_scripts/vacuum_tables.py", log_type], 
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
             check=True
         )
+        print(result.stdout)
+
         return f"{log_type} vacuumed"
 
-    @task
+    @task(pool="spark_pool")
     def generate_security_reports(log_type: str):
         import subprocess, json
 
         print(f"Querying Gold layer for {log_type} metrics...")
         result = subprocess.run(
             ["python3", "/opt/airflow/spark_scripts/extract_metrics.py", log_type],
-            capture_output=True, text=True, check=True
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True
         )
+        print(result.stdout)
 
         output_lines = result.stdout.strip().split('\n')
         metrics = json.loads(output_lines[-1])
@@ -107,7 +121,8 @@ def daily_security_summary():
         report = generate_security_reports.override(task_id=f"extract_{log_type}")(log_type)
         export = export_metrics_to_postgres.override(task_id=f"export_{log_type}")(report)
         
-        # Ensure cleanup runs before the extraction
+        start_pipeline >> cleanup
         cleanup >> report >> export
+        export >> end_pipeline
 
 summary_dag = daily_security_summary()

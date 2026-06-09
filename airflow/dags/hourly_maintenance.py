@@ -48,9 +48,14 @@ def hourly_maintenance():
             raise ValueError("Data validation failed, aborting compaction.")
         
         print(f"Triggering Spark compaction script for {log_type}")
-        subprocess.run(
-            ["python3", "/opt/airflow/spark_scripts/compact_tables.py", log_type],
+        result = subprocess.run(
+            ["python3", "/opt/airflow/spark_scripts/compact_tables.py", log_type], 
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True
         )
+        print(result.stdout)
 
         print("Compaction Complete")
         return log_type
