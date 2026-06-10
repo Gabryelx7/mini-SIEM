@@ -28,6 +28,28 @@ This project demonstrates the end-to-end lifecycle of high-throughput telemetry 
 * **Idempotent Reporting:** Daily batch extractions from the Gold layer, inserted cleanly into Postgres via `ON CONFLICT` constraints.
 * **Observability:** Complete metrics scraping via Prometheus, utilizing a Pushgateway for ephemeral Spark batch jobs and Kafka Exporter for consumer lag monitoring.
 
+## Project Showcase
+
+### 1. Real-Time SOC Analytics (Serving Layer)
+*Data streamed continuously from Spark into PostgreSQL for sub-second Grafana rendering.*
+![SOC Firewall Dashboard](docs/assets/grafana-firewall-events.png)
+
+### 2. Pipeline Orchestration & Maintenance
+*Airflow managing Delta Lake compaction on an hourly DAG.*
+![Airflow DAGs](docs/assets/airflow-hourly-dag.png)
+
+### 3. Data Engineering Observability
+*Prometheus scraping Kafka Exporter to monitor Kafka health.*
+![Observability Dashboard](docs/assets/grafana-kafka-observability.png)
+
+### 4. The Medallion Lakehouse 
+*S3-Compatible object storage (MinIO) holding optimized Gold Delta/Parquet files.*
+![MinIO Gold Bucket](docs/assets/minio-gold-bucket.png)
+
+### 5. The Streaming Ingestion
+*Kafka cluster consuming authentication messages.*
+![Kafka Auth Messages](docs/assets/kafka-auth-messages.png)
+
 ## Quick Start Setup
 
 **1. Clone the repository and configure the environment**
@@ -46,28 +68,6 @@ docker compose build
 docker compose up -d
 ```
 
-**3. Create virtual environment and install dependencies**
-```Bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-**4. Initialize the data streams**
-Open multiple terminal sessions to start the generators and Spark streaming pipelines:
-
-```Bash
-# Terminal 1: Start Log Generation
-python src/producers/generate_auth.py
-
-# Terminal 2: Start Lakehouse Ingestion
-python src/spark/bronze_pipeline.py
-
-# Terminal 3 & 4: Start Processing Layers
-python src/spark/silver_pipeline.py
-python src/spark/gold_pipeline.py
-```
-
 **5. Access the Interfaces**
 
 - **Kafka UI**: http://localhost:8080
@@ -75,9 +75,3 @@ python src/spark/gold_pipeline.py
 - **Airflow**: http://localhost:8000 (check logs of airflow-apiserver for credentials)
 - **Grafana Dashboards**: http://localhost:3000
 - **Prometheus**: http://localhost:9090
-
-### Future Enhancements
-
-- [ ] Add API Gateway and Firewall log generators.
-- [ ] Implement dead-letter queues (DLQ) for malformed log handling in the Silver layer.
-- [ ] Deploy Trino or DuckDB to query Delta tables directly from Grafana.
