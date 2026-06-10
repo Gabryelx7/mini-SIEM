@@ -21,6 +21,8 @@ x-spark-job:
     MINIO_PASSWORD: ${MINIO_PASSWORD}
     MINIO_ENDPOINT: http://siem-minio:9000
     KAFKA_PORT: kafka_1:19092
+  volumes:
+    - ./src/spark:/app/spark_scripts
   networks:
     - siem-net
   depends_on:
@@ -162,6 +164,8 @@ services:
   postgres:
     image: postgres:16
     container_name: airflow-postgres
+    ports:
+      - 5433:5432
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-airflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
@@ -310,15 +314,22 @@ services:
   # --- SPARK STRUCTURED STREAMING ---
   stream-bronze:
     <<: *spark-job-template
-    command: ["python", "bronze_pipeline.py"]
+    command: ["python", "spark_scripts/bronze_pipeline.py"]
   
   stream-silver:
     <<: *spark-job-template
-    command: ["python", "silver_pipeline.py"]
+    command: ["python", "spark_scripts/silver_pipeline.py"]
   
   stream-gold:
     <<: *spark-job-template
-    command: ["python", "gold_pipeline.py"]
+    command: ["python", "spark_scripts/gold_pipeline.py"]
+    environment:
+      MINIO_USER: ${MINIO_USER}
+      MINIO_PASSWORD: ${MINIO_PASSWORD}
+      MINIO_ENDPOINT: http://siem-minio:9000
+      KAFKA_PORT: kafka_1:19092
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
 
 volumes:
   postgres-db-volume:
