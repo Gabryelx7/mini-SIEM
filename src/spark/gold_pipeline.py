@@ -1,5 +1,42 @@
+import os
 from pyspark.sql.functions import col, window
 from session_builder import get_spark_session
+
+def write_to_postgres(df, table_name):
+    """
+    Takes a micro-batch DataFrame from the Gold stream 
+    and appends it directly to Postgres serving layer.
+    """
+    db_url = "jdbc:postgresql://postgres:5432/airflow"
+    # db_url = "jdbc:postgresql://localhost:5433/airflow"
+    
+    df.write \
+        .format("jdbc") \
+        .option("url", db_url) \
+        .option("driver", "org.postgresql.Driver") \
+        .option("dbtable", table_name) \
+        .option("user", os.getenv("POSTGRES_USER")) \
+        .option("password", os.getenv("POSTGRES_PASSWORD")) \
+        .mode("append") \
+        .save()
+
+
+def write_to_gold_delta(df, gold_path):
+    df.write \
+        .format("delta") \
+        .mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .save(gold_path)
+
+
+def write_batch_targets(df, table_name, gold_path):
+    if df.isEmpty():
+        print("Skipping empty batch")
+        return
+    
+    write_to_gold_delta(df, gold_path)
+    write_to_postgres(df, table_name)
+
 
 def aggregate_auth_logs(silver_df):
     # Detect Brute Force Attempts: multiple failed logins
@@ -28,7 +65,6 @@ def aggregate_firewall_events(silver_df):
             col("threat_level")
         ) \
         .count() \
-        .filter(col("count") > 50) \
         .withColumnRenamed("count", "blocked_connections")
     
     return gold_df
@@ -76,11 +112,25 @@ def create_gold_stream(spark_session, topic):
 
     print(f"Starting Gold aggregation stream. Writing to {gold_path}...")
 
-    query = gold_df.writeStream \
-        .format("delta") \
+    flattened_gold_df = gold_df.select(
+        col("window.start").alias("window_start"),
+        col("window.end").alias("window_end"),
+        "*"
+    ).drop("window")
+
+    TABLE_REGISTRY = {
+        "auth_logs": "auth_realtime_metrics",
+        "firewall_events": "firewall_realtime_metrics",
+        "api_gateway_logs": "api_realtime_metrics"
+    }
+    
+    target_table = TABLE_REGISTRY[topic]
+
+    query = flattened_gold_df.writeStream \
+        .foreachBatch(lambda df, _: write_batch_targets(df, target_table, gold_path)) \
         .outputMode("complete") \
         .option("checkpointLocation", checkpoint_path) \
-        .start(gold_path)
+        .start()
     
     return query
 
