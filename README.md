@@ -68,7 +68,7 @@ docker compose build
 docker compose up -d
 ```
 
-**5. Access the Interfaces**
+**3. Access the Interfaces**
 
 - **Kafka UI**: http://localhost:8080
 - **MinIO Object Storage**: http://localhost:9001
